@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+                          http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+    <kcfgfile name=""/>
+    <group name="General">
+        <entry name="showBrightness" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="showVolume" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="showNightLight" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="showMediaPlayer" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="terminalApp" type="String">
+            <default>konsole</default>
+        </entry>
+    </group>
+</kcfg> 

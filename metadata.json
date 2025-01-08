@@ -1,0 +1,19 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "me@venterum.com",
+                "Name": "Venterum"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "ChromeOS inspired Quick Settings Menu for KDE Plasma",
+        "Icon": "preferences-system",
+        "Id": "com.venterum.quicksettings",
+        "Name": "Quick Settings",
+        "Version": "0.5",
+        "Website": "https://github.com/venterum/kde-quick-settings"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+} 
