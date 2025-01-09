@@ -7,12 +7,12 @@
             }
         ],
         "Category": "System Information",
-        "Description": "ChromeOS inspired Quick Settings Menu for KDE Plasma",
-        "Icon": "preferences-system",
+        "Description": "ChromeOS inspired Quick Settings Menu for KDE Plasma 6 made by Venterum",
+        "Icon": "settings-app-symbolic",
         "Id": "com.venterum.quicksettings",
-        "Name": "Quick Settings",
-        "Version": "0.5",
-        "Website": "https://github.com/venterum/kde-quick-settings"
+        "Name": "KDE QuickSettings",
+        "Version": "Beta 0.9",
+        "Website": "https://github.com/venterum/KDE-QuickSettings"
     },
     "KPackageStructure": "Plasma/Applet",
     "X-Plasma-API-Minimum-Version": "6.0"

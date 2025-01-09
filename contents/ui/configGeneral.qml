@@ -60,4 +60,31 @@ Kirigami.FormLayout {
             }
         }
     }
+
+    Item { Kirigami.FormData.isSection: true }
+
+    Kirigami.Heading {
+        Kirigami.FormData.label: i18n("Language Settings")
+        text: i18n("Choose interface language:")
+    }
+
+    QQC2.ComboBox {
+        id: languageComboBox
+        Kirigami.FormData.label: i18n("Interface language:")
+        model: [
+            { text: i18n("English"), value: "en" },
+            { text: i18n("Русский"), value: "ru" },
+            { text: i18n("Čeština"), value: "cs" }
+        ]
+        textRole: "text"
+        valueRole: "value"
+        currentIndex: {
+            switch(plasmoid.configuration.language) {
+                case "ru": return 1;
+                case "cs": return 2;
+                default: return 0;
+            }
+        }
+        onCurrentValueChanged: plasmoid.configuration.language = currentValue
+    }
 } 

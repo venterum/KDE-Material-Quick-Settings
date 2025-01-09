@@ -20,5 +20,11 @@
         <entry name="terminalApp" type="String">
             <default>konsole</default>
         </entry>
+        <entry name="useRussianLocale" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="language" type="String">
+            <default>en</default>
+        </entry>
     </group>
 </kcfg> 

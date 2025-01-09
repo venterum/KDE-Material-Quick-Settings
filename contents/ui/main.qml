@@ -11,6 +11,7 @@ import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.private.brightnesscontrolplugin
 import org.kde.plasma.private.mpris as Mpris
 import org.kde.kquickcontrolsaddons 2.0 as KQuickAddons
+import "translations.js" as Translations
 
 PlasmoidItem {
     id: root
@@ -217,24 +218,19 @@ PlasmoidItem {
         Layout.preferredWidth: Kirigami.Units.gridUnit * 20
         Layout.preferredHeight: {
             let height = Kirigami.Units.gridUnit * 4
-            
-            // Высота сетки кнопок
             height += Math.ceil(buttonsGrid.visibleButtons / 2) * 
                      (buttonsGrid.buttonHeight + buttonsGrid.spacing)
             
-            // Медиаплеер
+            // Player
             if (cfg_showMediaPlayer && mpris2Model.currentPlayer !== null) {
                 height += Kirigami.Units.gridUnit * 9
             }
             
-            // Слайдеры
+            // Sliders
             if (cfg_showVolume) height += Kirigami.Units.gridUnit * 3
             if (cfg_showBrightness) height += Kirigami.Units.gridUnit * 3
             
-            // Нижняя панель
             height += Kirigami.Units.gridUnit * 3
-            
-            // Увеличим отступы
             height += Kirigami.Units.largeSpacing * 8
             
             return height
@@ -256,15 +252,12 @@ PlasmoidItem {
                 Layout.fillWidth: true
                 columns: 2
                 spacing: Kirigami.Units.largeSpacing
-                
-                // Вычисляем количество видимых кнопок
                 property int visibleButtons: {
-                    let count = 4 // WiFi и Bluetooth всегда видимы
+                    let count = 4
                     if (cfg_showNightLight) count++
                     return count
                 }
                 
-                // Вычисляем размер кнопки на основе доступного пространства
                 property real buttonWidth: (parent.width - (columns - 1) * spacing) / columns
                 property real buttonHeight: Kirigami.Units.gridUnit * 4
 
@@ -304,18 +297,20 @@ PlasmoidItem {
                             spacing: 0
 
                             PlasmaComponents.Label {
-                                text: i18n("Network")
+                                text: Translations.getTranslation("Network", language)
                                 font.weight: Font.Medium
                             }
 
                             PlasmaComponents.Label {
-                                text: wifiEnabled ? i18n("On") : i18n("Off")
+                                text: wifiEnabled ? 
+                                      Translations.getTranslation("On", language) : 
+                                      Translations.getTranslation("Off", language)
                                 font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 0.8)
                                 opacity: 0.7
                             }
 
                             PlasmaComponents.Label {
-                                text: networkName || i18n("Not Connected")
+                                text: networkName || Translations.getTranslation("Not Connected", language)
                                 font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 0.8)
                                 opacity: 0.7
                             }
@@ -329,8 +324,7 @@ PlasmoidItem {
                         acceptedButtons: Qt.LeftButton | Qt.RightButton
                         onClicked: {
                             if (mouse.button === Qt.RightButton) {
-                                executable.run("systemsettings5 network")  // Для Plasma 5
-                                // или executable.run("kcmshell6 kcm_networkmanagement")  // Для Plasma 6
+                                executable.run("kcmshell6 kcm_networkmanagement")
                             } else {
                                 toggleWifi()
                             }
@@ -370,21 +364,23 @@ PlasmoidItem {
 
                         ColumnLayout {
                             Layout.fillWidth: true
-                        spacing: 0
+                            spacing: 0
 
                             PlasmaComponents.Label {
-                                text: i18n("Bluetooth")
+                                text: Translations.getTranslation("Bluetooth", language)
                                 font.weight: Font.Medium
                             }
                             
                             PlasmaComponents.Label {
-                                text: bluetoothEnabled ? i18n("On") : i18n("Off")
+                                text: bluetoothEnabled ? 
+                                      Translations.getTranslation("On", language) : 
+                                      Translations.getTranslation("Off", language)
                                 font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 0.8)
                                 opacity: 0.7
                             }
                             
                             PlasmaComponents.Label {
-                                text: bluetoothDeviceName || i18n("Not Connected")
+                                text: bluetoothDeviceName || Translations.getTranslation("Not Connected", language)
                                 font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 0.8)
                                 opacity: 0.7
                             }
@@ -398,8 +394,7 @@ PlasmoidItem {
                         acceptedButtons: Qt.LeftButton | Qt.RightButton
                         onClicked: {
                             if (mouse.button === Qt.RightButton) {
-                                executable.run("systemsettings5 bluetooth")  // Для Plasma 5
-                                // или executable.run("kcmshell6 kcm_bluetooth")  // Для Plasma 6
+                                executable.run("kcmshell6 kcm_bluetooth")
                             } else {
                                 toggleBluetooth()
                             }
@@ -437,7 +432,7 @@ PlasmoidItem {
                         }
 
                         PlasmaComponents.Label {
-                            text: i18n("Screenshot")
+                            text: Translations.getTranslation("Screenshot", language)
                             font.weight: Font.Medium
                             Layout.fillWidth: true
                         }
@@ -483,7 +478,7 @@ PlasmoidItem {
                         }
 
                         PlasmaComponents.Label {
-                            text: i18n("Night Light")
+                            text: Translations.getTranslation("Night Light", language)
                             font.weight: Font.Medium
                             Layout.fillWidth: true
                         }
@@ -532,7 +527,7 @@ PlasmoidItem {
                         }
 
                         PlasmaComponents.Label {
-                            text: isMuted ? i18n("Unmute") : i18n("Mute")
+                            text: isMuted ? Translations.getTranslation("Unmute", language) : Translations.getTranslation("Mute", language)
                             font.weight: Font.Medium
                             Layout.fillWidth: true
                         }
@@ -572,10 +567,28 @@ PlasmoidItem {
                             Layout.preferredHeight: Kirigami.Units.iconSizes.medium
                         }
 
-                        PlasmaComponents.Label {
-                            text: i18n("Terminal")
-                            font.weight: Font.Medium
+                        ColumnLayout {
                             Layout.fillWidth: true
+                            spacing: 0
+
+                            PlasmaComponents.Label {
+                                text: Translations.getTranslation("Terminal", language)
+                                font.weight: Font.Medium
+                                Layout.fillWidth: true
+                            }
+
+                            PlasmaComponents.Label {
+                                text: {
+                                    switch(cfg_terminalApp) {
+                                        case "kitty": return "Kitty";
+                                        case "waveterm": return "Wave";
+                                        default: return "Konsole";
+                                    }
+                                }
+                                font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 0.8)
+                                opacity: 0.7
+                                Layout.fillWidth: true
+                            }
                         }
                     }
 
@@ -604,13 +617,11 @@ PlasmoidItem {
                     anchors.fill: parent
                     anchors.margins: Kirigami.Units.gridUnit
                     spacing: Kirigami.Units.smallSpacing
-
-                    // Верхняя часть с обложкой, информацией и кнопкой play
                     RowLayout {
                         Layout.fillWidth: true
                     spacing: Kirigami.Units.gridUnit
 
-                        // Обложка
+                        // Album art
                     Rectangle {
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 4
                         Layout.preferredHeight: Layout.preferredWidth
@@ -646,15 +657,25 @@ PlasmoidItem {
                         }
                     }
 
-                        // Информация о треке
+                        // Track info
                     ColumnLayout {
                         Layout.fillWidth: true
-                            spacing: 0
+                        spacing: Kirigami.Units.smallSpacing
 
                         PlasmaComponents.Label {
-                            text: mpris2Model.currentPlayer?.track ?? i18n("No media playing")
+                            text: mpris2Model.currentPlayer?.identity ?? ""
+                            font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 0.9)
+                            opacity: 0.7
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                            visible: text !== ""
+                        }
+
+                        PlasmaComponents.Label {
+                            text: mpris2Model.currentPlayer?.track ?? 
+                                  Translations.getTranslation("No media playing", language)
                             font.weight: Font.Medium
-                                font.pointSize: Kirigami.Theme.defaultFont.pointSize
+                            font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 1.1)
                             Layout.fillWidth: true
                             elide: Text.ElideRight
                         }
@@ -662,14 +683,14 @@ PlasmoidItem {
                         PlasmaComponents.Label {
                             text: mpris2Model.currentPlayer?.artist ?? ""
                             opacity: 0.7
-                                font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 0.9)
+                            font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 0.9)
                             Layout.fillWidth: true
                             elide: Text.ElideRight
                             visible: text !== ""
-                            }
                         }
+                    }
 
-                        // Кнопка Play/Pause
+                        // Play/Pause button
                         PlasmaComponents.Button {
                             icon.name: isPlaying ? "media-playback-pause" : "media-playback-start"
                             flat: true
@@ -682,7 +703,7 @@ PlasmoidItem {
 
                     Item { Layout.fillHeight: true }
 
-                    // Нижняя часть с прогресс-баром и кнопками управления
+                    // Progress bar and controls
                         RowLayout {
                         Layout.fillWidth: true
                             spacing: Kirigami.Units.smallSpacing
@@ -708,7 +729,6 @@ PlasmoidItem {
                                 value: position
                                 enabled: canSeek
 
-                                // Добавим обработчик изменения позиции
                                 Connections {
                                     target: root
                                     function onPositionChanged() {
@@ -886,9 +906,19 @@ PlasmoidItem {
                     anchors.fill: parent
                     anchors.margins: Kirigami.Units.largeSpacing
 
+                    // Power Button
+                    PlasmaComponents.Button {
+                        icon.name: "system-shutdown"
+                        flat: true
+                        onClicked: {
+                            executable.run("qdbus org.kde.LogoutPrompt /LogoutPrompt promptShutDown")
+                            root.expanded = false
+                        }
+                    }
+
                     // Battery Status
                     RowLayout {
-                        spacing: Kirigami.Units.smallSpacing
+                        spacing: 0
 
                         PlasmaComponents.Button {
                             icon.name: {
@@ -901,8 +931,6 @@ PlasmoidItem {
                                 if (percentage >= 20) return "battery-020"
                                 return "battery-000"
                             }
-                            Layout.preferredWidth: Kirigami.Units.iconSizes.small
-                            Layout.preferredHeight: Kirigami.Units.iconSizes.small
                             visible: pmSource.hasBattery
                         }
 
@@ -916,6 +944,7 @@ PlasmoidItem {
                                 return batteryText
                             }
                             opacity: 0.7
+                            leftPadding: -Kirigami.Units.smallSpacing
                         }
                     }
 
@@ -926,10 +955,7 @@ PlasmoidItem {
                         icon.name: "configure"
                         flat: true
                         onClicked: {
-                            // Для Plasma 5
-                            executable.run("systemsettings5 kcm_quick")
-                            // Для Plasma 6 раскомментировать следующую строку и закомментировать предыдущую
-                            // executable.run("kcmshell6 kcm_quick")
+                            executable.run("kcmshell6 kcm_landingpage")
                             root.expanded = false
                         }
                     }
@@ -951,14 +977,11 @@ PlasmoidItem {
         }
     }
 
-    // Add these properties at the beginning of PlasmoidItem
     property bool cfg_showBrightness: plasmoid.configuration.showBrightness
     property bool cfg_showVolume: plasmoid.configuration.showVolume
     property bool cfg_showNightLight: plasmoid.configuration.showNightLight
     property bool cfg_showMediaPlayer: plasmoid.configuration.showMediaPlayer
     property string cfg_terminalApp: plasmoid.configuration.terminalApp
-
-    // Обновим свойства для отслеживания позиции
     property real rate: mpris2Model.currentPlayer?.rate ?? 1
     property double length: mpris2Model.currentPlayer?.length ?? 0
     property double position: {
@@ -971,7 +994,6 @@ PlasmoidItem {
     property bool disablePositionUpdate: false
     property bool keyPressed: false
 
-    // Добавим таймер для обновления позиции в секцию с другими таймерами
     Timer {
         id: positionUpdateTimer
         interval: 1000
@@ -984,7 +1006,6 @@ PlasmoidItem {
         }
     }
 
-    // Добавим функцию форматирования времени
     function formatTime(microseconds) {
         let seconds = Math.floor(microseconds / 1000000)
         let minutes = Math.floor(seconds / 60)
@@ -1001,13 +1022,11 @@ PlasmoidItem {
             event.accepted = true
             
             if (event.key === Qt.Key_J) {
-                // перемотка назад на 5с
                 seekSlider.value = Math.max(0, seekSlider.value - 5000000)
                 if (!disablePositionUpdate) {
                     queuedPositionUpdate.restart()
                 }
             } else if (event.key === Qt.Key_L) {
-                // перемотка вперед на 5с
                 seekSlider.value = Math.min(seekSlider.to, seekSlider.value + 5000000)
                 if (!disablePositionUpdate) {
                     queuedPositionUpdate.restart()
@@ -1017,4 +1036,6 @@ PlasmoidItem {
             }
         }
     }
+
+    property string language: plasmoid.configuration.language
 } 
