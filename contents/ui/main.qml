@@ -60,34 +60,33 @@ PlasmoidItem {
         engine: "executable"
         
         function setVolume(volume) {
-            connectSource("pactl set-sink-volume @DEFAULT_SINK@ " + volume + "%")
+            connectSource("wpctl set-volume @DEFAULT_AUDIO_SINK@ " + (volume/100).toFixed(2))
         }
         
         function getVolume() {
-            connectSource("pactl get-sink-volume @DEFAULT_SINK@")
+            connectSource("wpctl get-volume @DEFAULT_AUDIO_SINK@")
         }
         
         function toggleMute() {
-            connectSource("pactl set-sink-mute @DEFAULT_SINK@ toggle")
+            connectSource("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")
         }
         
         function getMuteStatus() {
-            connectSource("pactl get-sink-mute @DEFAULT_SINK@")
+            connectSource("wpctl get-volume @DEFAULT_AUDIO_SINK@")
         }
         
         onNewData: function(sourceName, data) {
-            if (sourceName.indexOf("get-sink-volume") !== -1) {
-                var match = data.stdout.match(/(\d+)%/)
+            if (sourceName.indexOf("get-volume") !== -1) {
+                var match = data.stdout.match(/Volume: ([0-9.]+)/)
                 if (match && match[1]) {
-                    var volume = parseInt(match[1])
-                    var volumeControl = fullRepresentation.findChild("volumeSlider")?.parent?.parent
-                    if (volumeControl) {
-                        volumeControl.currentVolume = volume
+                    var volume = Math.round(parseFloat(match[1]) * 100)
+                    var volumeControl = volumeSlider
+                    if (volumeControl && !volumeControl.pressed) {
+                        volumeControl.value = volume
+                        volumeControl.parent.parent.currentVolume = volume
                     }
                 }
-            }
-            else if (sourceName.indexOf("get-sink-mute") !== -1) {
-                isMuted = data.stdout.indexOf("yes") !== -1
+                isMuted = data.stdout.indexOf("MUTED") !== -1
             }
             disconnectSource(sourceName)
         }
@@ -99,21 +98,23 @@ PlasmoidItem {
         engine: "executable"
         
         function getBrightness() {
-            connectSource("brightnessctl g")
+            connectSource("brightnessctl -m")
         }
         
         function setBrightness(value) {
-            connectSource("brightnessctl s " + value + "%")
+            connectSource("brightnessctl set " + Math.round(value) + "% -q")
         }
         
         onNewData: function(sourceName, data) {
-            if (sourceName === "brightnessctl g") {
-                var maxBrightness = 255
-                var currentBrightness = parseInt(data.stdout.trim())
-                var percentage = Math.round((currentBrightness / maxBrightness) * 100)
-                var brightnessControl = fullRepresentation.findChild("brightnessSlider")?.parent?.parent
-                if (brightnessControl) {
-                    brightnessControl.currentBrightness = percentage
+            if (sourceName === "brightnessctl -m") {
+                var values = data.stdout.trim().split(',')
+                if (values.length >= 3) {
+                    var percentage = Math.round(parseFloat(values[2]))
+                    var brightnessControl = brightnessSlider
+                    if (brightnessControl && !brightnessControl.pressed) {
+                        brightnessControl.value = percentage
+                        brightnessControl.parent.parent.currentBrightness = percentage
+                    }
                 }
             }
             disconnectSource(sourceName)
@@ -145,7 +146,7 @@ PlasmoidItem {
             }
         }
         
-        onNewData: {
+        onNewData: function(sourceName, data) {
             var stdout = data["stdout"]
             var command = sourceName
             
@@ -161,8 +162,8 @@ PlasmoidItem {
             else if (command.indexOf("bluetoothctl devices Connected") !== -1) {
                 bluetoothDeviceName = stdout.trim() ? stdout.split(' ').slice(2).join(' ') : ""
             }
-            else if (command === "pgrep redshift") {
-                nightShiftEnabled = (stdout.trim() !== "")
+            else if (command === "qdbus org.kde.KWin /ColorCorrect org.kde.kwin.ColorCorrect.nightColorActive") {
+                nightShiftEnabled = (stdout.trim() === "true")
             }
             
             disconnectSource(sourceName)
@@ -189,7 +190,7 @@ PlasmoidItem {
             brightnessSource.getBrightness()
             pulseAudio.getVolume()
             pmSource.connectedSources = ["Battery", "AC Adapter"]
-            executable.run("pgrep redshift")
+            executable.run("qdbus org.kde.KWin /ColorCorrect org.kde.kwin.ColorCorrect.nightColorActive")
         }
     }
 
@@ -242,6 +243,13 @@ PlasmoidItem {
                       Kirigami.Theme.backgroundColor.b, 0.98)
         radius: cornerRadius
 
+        Behavior on Layout.preferredHeight {
+            NumberAnimation {
+                duration: Kirigami.Units.longDuration
+                easing.type: Easing.InOutQuad
+            }
+        }
+
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: Kirigami.Units.largeSpacing
@@ -266,7 +274,10 @@ PlasmoidItem {
                     width: parent.buttonWidth
                     height: parent.buttonHeight
                     radius: height / 4
-                    color: wifiEnabled ? accentColor : 
+                    color: wifiEnabled ? Qt.rgba(Kirigami.Theme.highlightColor.r, 
+                                                Kirigami.Theme.highlightColor.g, 
+                                                Kirigami.Theme.highlightColor.b, 
+                                                0.3) :
                           wifiMouseArea.containsMouse ? Qt.rgba(Kirigami.Theme.textColor.r, 
                                                               Kirigami.Theme.textColor.g, 
                                                               Kirigami.Theme.textColor.b, 
@@ -332,16 +343,63 @@ PlasmoidItem {
                     }
                 }
 
+                // Screenshot Button
+                Rectangle {
+                    width: parent.buttonWidth
+                    height: parent.buttonHeight
+                    radius: height / 4
+                    color: screenshotMouseArea.containsMouse ? Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                                   Kirigami.Theme.textColor.g, 
+                                                                   Kirigami.Theme.textColor.b, 
+                                                                   buttonOpacity * 1.5) :
+                          Qt.rgba(Kirigami.Theme.textColor.r, 
+                                 Kirigami.Theme.textColor.g, 
+                                 Kirigami.Theme.textColor.b, 
+                                 buttonOpacity)
+                    Behavior on color {
+                        ColorAnimation { duration: 150 }
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.largeSpacing
+                        spacing: Kirigami.Units.smallSpacing
+
+                        PlasmaComponents.Button {
+                            icon.name: "camera-photo"
+                            flat: true
+                            Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+                            Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                        }
+
+                            PlasmaComponents.Label {
+                            text: Translations.getTranslation("Screenshot", language)
+                                font.weight: Font.Medium
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    MouseArea {
+                        id: screenshotMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: executable.run("spectacle -r")
+                    }
+                }
+
                 // Bluetooth Button
                 Rectangle {
                     width: parent.buttonWidth
                     height: parent.buttonHeight
                     radius: height / 4
-                    color: bluetoothEnabled ? accentColor : 
-                          bluetoothMouseArea.containsMouse ? Qt.rgba(Kirigami.Theme.textColor.r, 
-                                                                   Kirigami.Theme.textColor.g, 
-                                                                   Kirigami.Theme.textColor.b, 
-                                                                   buttonOpacity * 1.5) :
+                    color: bluetoothEnabled ? Qt.rgba(Kirigami.Theme.highlightColor.r, 
+                                                     Kirigami.Theme.highlightColor.g, 
+                                                     Kirigami.Theme.highlightColor.b, 
+                                                     0.3) :
+                                              bluetoothMouseArea.containsMouse ? Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                                     Kirigami.Theme.textColor.g, 
+                                                                     Kirigami.Theme.textColor.b, 
+                                                                     buttonOpacity * 1.5) :
                           Qt.rgba(Kirigami.Theme.textColor.r, 
                                  Kirigami.Theme.textColor.g, 
                                  Kirigami.Theme.textColor.b, 
@@ -366,9 +424,9 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             spacing: 0
 
-                            PlasmaComponents.Label {
+                        PlasmaComponents.Label {
                                 text: Translations.getTranslation("Bluetooth", language)
-                                font.weight: Font.Medium
+                            font.weight: Font.Medium
                             }
                             
                             PlasmaComponents.Label {
@@ -402,56 +460,15 @@ PlasmoidItem {
                     }
                 }
 
-                // Screenshot Button
-                Rectangle {
-                    width: parent.buttonWidth
-                    height: parent.buttonHeight
-                    radius: height / 4
-                    color: screenshotMouseArea.containsMouse ? Qt.rgba(Kirigami.Theme.textColor.r, 
-                                                                     Kirigami.Theme.textColor.g, 
-                                                                     Kirigami.Theme.textColor.b, 
-                                                                     buttonOpacity * 1.5) :
-                          Qt.rgba(Kirigami.Theme.textColor.r, 
-                                 Kirigami.Theme.textColor.g, 
-                                 Kirigami.Theme.textColor.b, 
-                                 buttonOpacity)
-                    Behavior on color {
-                        ColorAnimation { duration: 150 }
-                    }
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: Kirigami.Units.largeSpacing
-                        spacing: Kirigami.Units.smallSpacing
-
-                        PlasmaComponents.Button {
-                            icon.name: "camera-photo"
-                            flat: true
-                            Layout.preferredWidth: Kirigami.Units.iconSizes.medium
-                            Layout.preferredHeight: Kirigami.Units.iconSizes.medium
-                        }
-
-                        PlasmaComponents.Label {
-                            text: Translations.getTranslation("Screenshot", language)
-                            font.weight: Font.Medium
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    MouseArea {
-                        id: screenshotMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: executable.run("spectacle -r")
-                    }
-                }
-
                 // Night Shift Button
                 Rectangle {
                     width: parent.buttonWidth
                     height: parent.buttonHeight
                     radius: height / 4
-                    color: nightShiftEnabled ? accentColor : 
+                    color: nightShiftEnabled ? Qt.rgba(Kirigami.Theme.highlightColor.r, 
+                                                     Kirigami.Theme.highlightColor.g, 
+                                                     Kirigami.Theme.highlightColor.b, 
+                                                     0.3) :
                            nightShiftMouseArea.containsMouse ? Qt.rgba(Kirigami.Theme.textColor.r, 
                                                                        Kirigami.Theme.textColor.g, 
                                                                        Kirigami.Theme.textColor.b, 
@@ -489,12 +506,7 @@ PlasmoidItem {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: {
-                            if (!nightShiftEnabled) {
-                                executable.run("redshift -O 4500")
-                            } else {
-                                executable.run("redshift -x")
-                            }
-                            nightShiftEnabled = !nightShiftEnabled
+                            toggleNightShift()
                         }
                     }
                 }
@@ -504,7 +516,10 @@ PlasmoidItem {
                     width: parent.buttonWidth
                     height: parent.buttonHeight
                     radius: height / 4
-                    color: isMuted ? accentColor : 
+                    color: isMuted ? Qt.rgba(Kirigami.Theme.highlightColor.r, 
+                                             Kirigami.Theme.highlightColor.g, 
+                                             Kirigami.Theme.highlightColor.b, 
+                                             0.3) :
                            muteMouseArea.containsMouse ? Qt.rgba(Kirigami.Theme.textColor.r, 
                                                                Kirigami.Theme.textColor.g, 
                                                                Kirigami.Theme.textColor.b, 
@@ -694,33 +709,43 @@ PlasmoidItem {
                         PlasmaComponents.Button {
                             icon.name: isPlaying ? "media-playback-pause" : "media-playback-start"
                             flat: true
-                            Layout.preferredHeight: Kirigami.Units.gridUnit * 2
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 2
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 2.5
+                            icon.width: Kirigami.Units.gridUnit * 2.5
+                            icon.height: Kirigami.Units.gridUnit * 2.5
                             enabled: canControl && (isPlaying ? canPause : canPlay)
                             onClicked: mpris2Model.currentPlayer.PlayPause()
+                            
+                            background: Rectangle {
+                                radius: 12
+                                color: parent.pressed ? Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                              Kirigami.Theme.textColor.g, 
+                                                              Kirigami.Theme.textColor.b, 
+                                                              0.3) :
+                                       parent.hovered ? Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                              Kirigami.Theme.textColor.g, 
+                                                              Kirigami.Theme.textColor.b, 
+                                                              0.2) :
+                                       Qt.rgba(Kirigami.Theme.textColor.r, 
+                                              Kirigami.Theme.textColor.g, 
+                                              Kirigami.Theme.textColor.b, 
+                                              0.1)
+                                
+                                Behavior on color {
+                                    ColorAnimation { duration: 150 }
+                                }
+                            }
                         }
                     }
 
                     Item { Layout.fillHeight: true }
 
                     // Progress bar and controls
-                        RowLayout {
+                    ColumnLayout {
                         Layout.fillWidth: true
                             spacing: Kirigami.Units.smallSpacing
 
-                            PlasmaComponents.Button {
-                                icon.name: "media-skip-backward"
-                                flat: true
-                                Layout.preferredHeight: Kirigami.Units.gridUnit * 2
-                                Layout.preferredWidth: Kirigami.Units.gridUnit * 2
-                                enabled: canControl && canGoPrevious
-                                onClicked: mpris2Model.currentPlayer.Previous()
-                            }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 2
-
+                        // Progress bar
                             PlasmaComponents.Slider {
                                 id: seekSlider
                                 Layout.fillWidth: true
@@ -769,18 +794,60 @@ PlasmoidItem {
                                 }
                             }
 
+                        // Time and controls
                             RowLayout {
                                 Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+
+                            // Combined time label
                                 PlasmaComponents.Label {
-                                    text: formatTime(position)
-                                    font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 0.8)
+                                text: formatTime(position) + " / " + formatTime(length)
+                                font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize)
+                                font.weight: Font.Bold
                                     opacity: 0.7
                                 }
+
                                 Item { Layout.fillWidth: true }
-                                PlasmaComponents.Label {
-                                    text: formatTime(length)
-                                    font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 0.8)
-                                    opacity: 0.7
+
+                            // Track controls
+                            RowLayout {
+                                spacing: Kirigami.Units.smallSpacing
+
+                                PlasmaComponents.Button {
+                                    icon.name: "media-skip-backward"
+                                    flat: true
+                                    Layout.preferredHeight: Kirigami.Units.gridUnit * 2
+                                    Layout.preferredWidth: Kirigami.Units.gridUnit * 2
+                                    enabled: canControl && canGoPrevious
+                                    onClicked: mpris2Model.currentPlayer.Previous()
+                                }
+
+                                PlasmaComponents.Button {
+                                    icon.name: "media-seek-backward"
+                                    flat: true
+                                    Layout.preferredHeight: Kirigami.Units.gridUnit * 2
+                                    Layout.preferredWidth: Kirigami.Units.gridUnit * 2
+                                    enabled: canSeek
+                                    onClicked: {
+                                        if (mpris2Model.currentPlayer) {
+                                            let newPosition = Math.max(0, position - 10000000) // 10 секунд в микросекундах
+                                            mpris2Model.currentPlayer.position = newPosition
+                                            mpris2Model.currentPlayer.updatePosition()
+                                        }
+                                    }
+                                }
+
+                                PlasmaComponents.Button {
+                                    icon.name: "media-seek-forward"
+                                    flat: true
+                                    Layout.preferredHeight: Kirigami.Units.gridUnit * 2
+                                    Layout.preferredWidth: Kirigami.Units.gridUnit * 2
+                                    enabled: canSeek
+                                    onClicked: {
+                                        if (mpris2Model.currentPlayer) {
+                                            let newPosition = Math.min(length, position + 10000000) // 10 секунд в микросекундах
+                                            mpris2Model.currentPlayer.position = newPosition
+                                            mpris2Model.currentPlayer.updatePosition()
                                 }
                             }
                             }
@@ -792,110 +859,138 @@ PlasmoidItem {
                                 Layout.preferredWidth: Kirigami.Units.gridUnit * 2
                                 enabled: canControl && canGoNext
                                 onClicked: mpris2Model.currentPlayer.Next()
+                                }
+                            }
                         }
                     }
                 }
             }
 
             // Sliders Section
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
-
-                // Volume Slider
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-                    radius: height / 4
+                Layout.preferredHeight: Kirigami.Units.gridUnit * 6
+                radius: cornerRadius
+                Layout.topMargin: Kirigami.Units.smallSpacing
                     color: Qt.rgba(Kirigami.Theme.textColor.r, 
                                 Kirigami.Theme.textColor.g, 
                                 Kirigami.Theme.textColor.b, 
                                 buttonOpacity)
-                    visible: cfg_showVolume
+                visible: cfg_showVolume || cfg_showBrightness
 
-                    property int currentVolume: 0
+                property bool isHovered: false
 
-                    RowLayout {
+                Behavior on color {
+                    ColorAnimation { duration: 150 }
+                }
+                
+                color: isHovered ? 
+                       Qt.rgba(Kirigami.Theme.textColor.r, 
+                               Kirigami.Theme.textColor.g, 
+                               Kirigami.Theme.textColor.b, 
+                               buttonOpacity * 1.5) :
+                       Qt.rgba(Kirigami.Theme.textColor.r, 
+                               Kirigami.Theme.textColor.g, 
+                               Kirigami.Theme.textColor.b, 
+                               buttonOpacity)
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onEntered: parent.isHovered = true
+                    onExited: parent.isHovered = false
+                }
+
+                ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: Kirigami.Units.largeSpacing
+                    spacing: Kirigami.Units.smallSpacing
+
+                    // Volume Control
+                    RowLayout {
+                        Layout.fillWidth: true
+                        visible: cfg_showVolume
                         spacing: Kirigami.Units.smallSpacing
 
                         PlasmaComponents.Button {
-                            icon.name: "audio-volume-high"
+                            icon.name: isMuted ? "audio-volume-muted" : "audio-volume-high"
                             flat: true
-                            Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                            Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+                            Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                            Layout.alignment: Qt.AlignVCenter
+                            onClicked: pulseAudio.toggleMute()
                         }
 
                         PlasmaComponents.Slider {
                             id: volumeSlider
                             Layout.fillWidth: true
+                            Layout.leftMargin: Kirigami.Units.smallSpacing
                             from: 0
                             to: 100
-                            value: parent.parent.currentVolume
+                            value: parent.parent.parent.currentVolume
                             onMoved: {
-                                parent.parent.currentVolume = value
+                                parent.parent.parent.currentVolume = value
                                 pulseAudio.setVolume(value)
                             }
                         }
 
                         PlasmaComponents.Label {
-                            text: parent.parent.currentVolume + "%"
+                            text: parent.parent.parent.currentVolume + "%"
                             Layout.minimumWidth: Kirigami.Units.gridUnit * 2.5
+                            Layout.rightMargin: Kirigami.Units.smallSpacing
                             horizontalAlignment: Text.AlignRight
-                        }
+                            font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 0.9)
+                            opacity: 0.7
                     }
                 }
 
-                // Brightness Slider
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-                    radius: height / 4
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, 
-                                Kirigami.Theme.textColor.g, 
-                                Kirigami.Theme.textColor.b, 
-                                buttonOpacity)
-                    visible: cfg_showBrightness
-
-                    property int currentBrightness: 0
-
+                    // Brightness Control
                     RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: Kirigami.Units.largeSpacing
+                    Layout.fillWidth: true
+                    visible: cfg_showBrightness
                         spacing: Kirigami.Units.smallSpacing
 
                         PlasmaComponents.Button {
-                            icon.name: "brightness"
+                            icon.name: "display-brightness-symbolic"
                             flat: true
-                            Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                            Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+                            Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                            Layout.alignment: Qt.AlignVCenter
                         }
 
                         PlasmaComponents.Slider {
                             id: brightnessSlider
                             Layout.fillWidth: true
+                            Layout.leftMargin: Kirigami.Units.smallSpacing
                             from: 0
                             to: 100
-                            value: parent.parent.currentBrightness
+                            value: parent.parent.parent.currentBrightness
                             onMoved: {
-                                parent.parent.currentBrightness = value
+                                parent.parent.parent.currentBrightness = value
                                 brightnessSource.setBrightness(value)
                             }
                         }
 
                         PlasmaComponents.Label {
-                            text: parent.parent.currentBrightness + "%"
+                            text: parent.parent.parent.currentBrightness + "%"
                             Layout.minimumWidth: Kirigami.Units.gridUnit * 2.5
+                            Layout.rightMargin: Kirigami.Units.smallSpacing
                             horizontalAlignment: Text.AlignRight
+                            font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 0.9)
+                            opacity: 0.7
                         }
                     }
                 }
+
+                property int currentVolume: 0
+                property int currentBrightness: 0
             }
 
             // Bottom Bar
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-                radius: height / 4
+                radius: cornerRadius
                 Layout.topMargin: Kirigami.Units.smallSpacing
                 color: Qt.rgba(Kirigami.Theme.textColor.r, 
                               Kirigami.Theme.textColor.g, 
@@ -904,59 +999,151 @@ PlasmoidItem {
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: Kirigami.Units.largeSpacing
+                    anchors.margins: Kirigami.Units.gridUnit * 0.75
+                    spacing: Kirigami.Units.smallSpacing
 
                     // Power Button
                     PlasmaComponents.Button {
-                        icon.name: "system-shutdown"
+                        icon.name: "system-shutdown-symbolic"
                         flat: true
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                        Layout.preferredWidth: Layout.preferredHeight
                         onClicked: {
                             executable.run("qdbus org.kde.LogoutPrompt /LogoutPrompt promptShutDown")
                             root.expanded = false
                         }
+                        
+                        background: Rectangle {
+                            radius: width / 2
+                            color: parent.pressed ? Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                          Kirigami.Theme.textColor.g, 
+                                                          Kirigami.Theme.textColor.b, 
+                                                          0.3) :
+                                   parent.hovered ? Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                          Kirigami.Theme.textColor.g, 
+                                                          Kirigami.Theme.textColor.b, 
+                                                          0.2) :
+                                   Qt.rgba(Kirigami.Theme.textColor.r, 
+                                          Kirigami.Theme.textColor.g, 
+                                          Kirigami.Theme.textColor.b, 
+                                          0.1)
+                            
+                            Behavior on color {
+                                ColorAnimation { duration: 150 }
+                            }
+                        }
                     }
 
-                    // Battery Status
-                    RowLayout {
-                        spacing: 0
-
-                        PlasmaComponents.Button {
-                            icon.name: {
-                                if (!pmSource.hasBattery) return ""
-                                if (pmSource.pluggedIn) return "battery-charging"
-                                let percentage = pmSource.batteryPercent
-                                if (percentage >= 90) return "battery-100"
-                                if (percentage >= 70) return "battery-070"
-                                if (percentage >= 40) return "battery-040"
-                                if (percentage >= 20) return "battery-020"
-                                return "battery-000"
-                            }
-                            visible: pmSource.hasBattery
+                    // Reboot Button
+                    PlasmaComponents.Button {
+                        icon.name: "reload_page"
+                        flat: true
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                        Layout.preferredWidth: Layout.preferredHeight
+                        onClicked: {
+                            executable.run("qdbus org.kde.LogoutPrompt /LogoutPrompt promptReboot")
+                            root.expanded = false
                         }
+                        
+                        background: Rectangle {
+                            radius: width / 2
+                            color: parent.pressed ? Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                          Kirigami.Theme.textColor.g, 
+                                                          Kirigami.Theme.textColor.b, 
+                                                          0.3) :
+                                   parent.hovered ? Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                          Kirigami.Theme.textColor.g, 
+                                                          Kirigami.Theme.textColor.b, 
+                                                          0.2) :
+                                   Qt.rgba(Kirigami.Theme.textColor.r, 
+                                          Kirigami.Theme.textColor.g, 
+                                          Kirigami.Theme.textColor.b, 
+                                          0.1)
+                            
+                            Behavior on color {
+                                ColorAnimation { duration: 150 }
+                            }
+                        }
+                    }
 
+                    // Logout Button
+                        PlasmaComponents.Button {
+                        icon.name: "system-log-out-symbolic"
+                        flat: true
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                        Layout.preferredWidth: Layout.preferredHeight
+                        onClicked: {
+                            executable.run("qdbus org.kde.LogoutPrompt /LogoutPrompt promptLogout")
+                            root.expanded = false
+                        }
+                        
+                        background: Rectangle {
+                            radius: width / 2
+                            color: parent.pressed ? Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                          Kirigami.Theme.textColor.g, 
+                                                          Kirigami.Theme.textColor.b, 
+                                                          0.3) :
+                                   parent.hovered ? Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                          Kirigami.Theme.textColor.g, 
+                                                          Kirigami.Theme.textColor.b, 
+                                                          0.2) :
+                                   Qt.rgba(Kirigami.Theme.textColor.r, 
+                                          Kirigami.Theme.textColor.g, 
+                                          Kirigami.Theme.textColor.b, 
+                                          0.1)
+                            
+                            Behavior on color {
+                                ColorAnimation { duration: 150 }
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    // Battery Status
                         PlasmaComponents.Label {
                             text: {
-                                let batteryText = pmSource.hasBattery ? pmSource.batteryPercent + "%" : ""
-                                if (pmSource.hasBattery && pmSource.data["Battery"]["Time to empty"]) {
+                            if (!pmSource.hasBattery) return ""
+                            let batteryText = pmSource.batteryPercent + "%"
+                            if (pmSource.data["Battery"]["Time to empty"]) {
                                     let timeToEmpty = Math.round(pmSource.data["Battery"]["Time to empty"] / 60)
                                     batteryText += " • " + timeToEmpty + "m"
                                 }
                                 return batteryText
                             }
                             opacity: 0.7
-                            leftPadding: -Kirigami.Units.smallSpacing
-                        }
+                        visible: pmSource.hasBattery
                     }
-
-                    Item { Layout.fillWidth: true }
 
                     // Settings Button
                     PlasmaComponents.Button {
                         icon.name: "configure"
                         flat: true
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+                        Layout.preferredWidth: Layout.preferredHeight
                         onClicked: {
                             executable.run("kcmshell6 kcm_landingpage")
                             root.expanded = false
+                        }
+                        
+                        background: Rectangle {
+                            radius: width / 2
+                            color: parent.pressed ? Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                          Kirigami.Theme.textColor.g, 
+                                                          Kirigami.Theme.textColor.b, 
+                                                          0.3) :
+                                           parent.hovered ? Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                          Kirigami.Theme.textColor.g, 
+                                                          Kirigami.Theme.textColor.b, 
+                                                          0.2) :
+                                           Qt.rgba(Kirigami.Theme.textColor.r, 
+                                                  Kirigami.Theme.textColor.g, 
+                                                  Kirigami.Theme.textColor.b, 
+                                                  0.1)
+                            
+                            Behavior on color {
+                                ColorAnimation { duration: 150 }
+                            }
                         }
                     }
                 }
@@ -969,12 +1156,12 @@ PlasmoidItem {
 
     function toggleNightShift() {
         if (!nightShiftEnabled) {
-            executable.run("redshift -O 4500")
-            nightShiftEnabled = true
+            executable.run("qdbus org.kde.KWin /ColorCorrect org.kde.kwin.ColorCorrect.setNightColorActive true")
+            executable.run("qdbus org.kde.KWin /ColorCorrect org.kde.kwin.ColorCorrect.setTemperature 4500")
         } else {
-            executable.run("redshift -x")
-            nightShiftEnabled = false
+            executable.run("qdbus org.kde.KWin /ColorCorrect org.kde.kwin.ColorCorrect.setNightColorActive false")
         }
+        nightShiftEnabled = !nightShiftEnabled
     }
 
     property bool cfg_showBrightness: plasmoid.configuration.showBrightness
