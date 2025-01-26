@@ -1,8 +1,5 @@
 # KDE Material Quick Settings
 
-![Screenshot_20250127_025853](https://github.com/user-attachments/assets/74eda3a5-c791-4dd7-a422-f4e4ac89abb1)
-
-
 A ChromeOS-inspired Quick Settings Menu for KDE Plasma 6, designed to provide a modern and functional alternative to the default system tray experience.
 
 You know how it goes - I was using KDE Plasma 6 and really missed having a slick quick settings menu. Looked around but couldn't find anything that hit the spot. So I thought "hey, why not make one myself?" And here we are! Built this to be super clean and easy to use, with all the controls you need right at your fingertips.
@@ -10,7 +7,7 @@ You know how it goes - I was using KDE Plasma 6 and really missed having a slick
 ![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-KDE%20Plasma%206-blue.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
-
+![Screenshot_20250127_025853](https://github.com/user-attachments/assets/74eda3a5-c791-4dd7-a422-f4e4ac89abb1)
 ## 🌟 Features
 
 - Modern Material Design-inspired interface
