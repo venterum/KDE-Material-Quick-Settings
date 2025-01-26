@@ -1,5 +1,8 @@
 # KDE Material Quick Settings
 
+![Screenshot_20250127_025853](https://github.com/user-attachments/assets/74eda3a5-c791-4dd7-a422-f4e4ac89abb1)
+
+
 A ChromeOS-inspired Quick Settings Menu for KDE Plasma 6, designed to provide a modern and functional alternative to the default system tray experience.
 
 You know how it goes - I was using KDE Plasma 6 and really missed having a slick quick settings menu. Looked around but couldn't find anything that hit the spot. So I thought "hey, why not make one myself?" And here we are! Built this to be super clean and easy to use, with all the controls you need right at your fingertips.
@@ -36,14 +39,10 @@ You know how it goes - I was using KDE Plasma 6 and really missed having a slick
 ## ⚠️ Known Issues
 
 1. Night Light Toggle:
-   - The Night Light status might not always sync correctly with system state
-   - Sometimes requires manual toggle to match system state
-   - Might need multiple clicks to activate/deactivate
+   - Not working with Wayland XD
 
 2. Volume/Brightness Sliders:
-   - Occasional desync with system values
-   - Might not always reflect external changes immediately
-   - May require manual adjustment to sync
+   - Desync with system values
 
 ## 🤝 Contributing
 
